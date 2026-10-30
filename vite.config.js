@@ -1,16 +1,16 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { SITE } from './src/site.js';
 
-// Сайт деплоится в подпапку репозитория на GitHub Pages:
-// https://gribnoi17.github.io/github-pages-guide/
-// поэтому base должен совпадать с именем репозитория.
-export default defineConfig({
-  base: '/github-pages-guide/',
-  // Собираем в docs/, чтобы GitHub Pages мог раздавать из этой папки,
-  // а исходники жили рядом в корне репозитория.
-  build: {
-    outDir: 'docs',
-    emptyOutDir: true,
-  },
-  plugins: [react()],
-});
+const escape = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+// Подставляет значения из src/site.js в index.html (%SITE_NAME% и т.п.).
+const siteMeta = {
+  name: 'site-meta',
+  transformIndexHtml: html => html
+    .replaceAll('%SITE_NAME%', escape(SITE.name))
+    .replaceAll('%SITE_TITLE%', escape(SITE.title))
+    .replaceAll('%SITE_DESCRIPTION%', escape(SITE.description))
+    .replaceAll('%SITE_URL%', SITE.url),
+};
+
+export default defineConfig({ plugins: [siteMeta] });

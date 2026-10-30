@@ -1,38 +1,92 @@
-import { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { animate, AnimatePresence, motion, MotionConfig, useInView, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react';
+import { SITE } from './site.js';
 
-export default function App() {
-  const [count, setCount] = useState(0);
-
-  return (
-    <div className="page">
-      <main className="hero">
-        <span className="badge">React + GitHub Pages</span>
-
-        <h1>
-          Сделано на <span className="accent">React</span>
-          <br />и залито на <span className="accent">GitHub&nbsp;Pages</span>
-        </h1>
-
-        <p className="subtitle">
-          Это статический сайт: после сборки React превращается в обычные файлы,
-          которые GitHub Pages раздаёт бесплатно и быстро.
-        </p>
-
-        {/* Маленькое доказательство, что это живой React, а не просто HTML */}
-        <button className="btn" onClick={() => setCount((c) => c + 1)}>
-          Кликнуто раз: {count}
-        </button>
-      </main>
-
-      <footer className="footer">
-        <p className="footer-title">Мой Telegram-канал</p>
-        <a className="footer-link" href="https://t.me/gribnoi_it" target="_blank" rel="noreferrer">
-          «Путь в IT» →
-        </a>
-        <p className="footer-note">
-          Про бэкенд, продукты и путь в разработку. Подписывайся 💚
-        </p>
-      </footer>
-    </div>
-  );
+const art = name => `/art/${name}.webp`;
+const PROJECT_NAME = SITE.name;
+const TELEGRAM_URL = SITE.telegram;
+function TelegramButton({className='button primary', children='Следить в Telegram'}) {
+  if (!TELEGRAM_URL) return <a className={className} href="#join">{children} <Icon name="arrow"/></a>;
+  return <a className={className} href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer">{children} <Icon name="arrow"/></a>;
 }
+const roles = [
+  {id:'raider', name:'Рейдер', image:'raid', label:'Гильдии и мировые боссы', title:'Собрать отряд. Разобраться с боссом.', text:'Изучайте атаки, уклоняйтесь и следите за выносливостью. В рейдах добывают редкие компоненты и открывают следующие этажи.', tags:['Тактический бой','Редкие компоненты','Общий прогресс'], icon:'swords'},
+  {id:'smith', name:'Мастер', image:'town', label:'Ремесло и торговля', title:'Подготовить снаряжение для следующего рейда.', text:'Осваивайте профессию, создавайте оружие и броню из добытых компонентов. Планируем заказы, лавки и аукцион для торговли между игроками.', tags:['Профессии','Создание снаряжения','Заказы игроков'], icon:'anvil'},
+  {id:'scout', name:'Исследователь', image:'expedition', label:'Разведка и открытия', title:'Изучить этаж до похода в лабиринт.', text:'Ищите секреты, открывайте рецепты и пополняйте общий мануал. Имена первооткрывателей планируем сохранять в истории мира.', tags:['Разведка','Рецепты','Общий мануал'], icon:'compass'},
+];
+const steps = [
+  ['anvil','Подготовиться','Мастера создают снаряжение из компонентов, которые приносят рейдеры.'],
+  ['compass','Пройти лабиринт','Отряд исследует путь к боссу и изучает противников.'],
+  ['swords','Победить босса','В бою нужны выносливость, уклонения и знание атак противника.'],
+  ['gate','Открыть этаж','После победы следующий этаж становится доступен всему серверу.'],
+];
+const questions = [
+  ['Это сервер по SAO?','Да. Это фанатский ММОРПГ сервер Майнкрафт по мотивам САО — аниме Sword Art Online («Мастера меча онлайн»). Как в САО, мир состоит из 100 этажей, а гибель в опасной зоне означает потерю персонажа. Проект независимый и не является официальным продуктом.'],
+  ['Можно уже зайти на сервер?','Нет. Сервер в разработке, дата открытия не объявлена.'],
+  ['Где следить за новостями?','Все новости проекта выходят в Telegram-канале t.me/turris_mmo.'],
+  ['Как будет устроен вход?','Планируем собственный лаунчер для установки сборки, обновлений и входа. Версию Minecraft и требования к компьютеру объявим позже.'],
+  ['Будет ли платно?','Донат предусмотрен только для косметики. Боевые характеристики и снаряжение продавать не планируем.'],
+  ['На сайте показана сама игра?','Нет, это концепт-арты. Скриншоты сервера и записи игрового процесса пока не опубликованы.'],
+];
+function Icon({name, className=''}) {
+  const paths = {
+    swords:<><path d="m4 3 12 12-3 3L1 6V3h3Zm16 0L8 15l3 3L23 6V3h-3ZM3 16l5 5m8-5 5 5M2 22l4-4m12 0 4 4"/></>,
+    anvil:<><path d="M3 7h18l-4 5h-5v4l5 3H7l3-3v-4H6L3 9V7Zm7-4h9v4"/></>,
+    compass:<><circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6 6-2ZM12 1v2m0 18v2M1 12h2m18 0h2"/></>,
+    gate:<><path d="M4 21V4h16v17M8 21V8h8v13M2 21h20M11 12l3 3-3 3"/></>,
+    shield:<><path d="m12 2 8 3v6c0 5-8 11-8 11S4 16 4 11V5l8-3Z"/><path d="m8 11 3 3 5-5"/></>,
+    gem:<><path d="m12 2 9 10-9 10L3 12 9 2ZM3 12h18M9 2l3 20 3-20"/></>,
+    book:<><path d="M12 5C8 2 3 3 3 3v17s5-1 9 2c4-3 9-2 9-2V3s-5-1-9 2Zm0 0v17"/></>,
+    arrow:<path d="M4 12h16m-6-6 6 6-6 6"/>,
+  };
+  return <svg className={`icon ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.gem}</svg>;
+}
+function Reveal({children, className='', delay=0}) {
+  const reduce=useReducedMotion();
+  return <motion.div className={className} initial={reduce?false:{opacity:0,y:25}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:.12}} transition={{duration:.65,delay,ease:[.22,1,.36,1]}}>{children}</motion.div>;
+}
+function Eyebrow({number,children}) {return <p className="eyebrow"><span>{number}</span><i/>{children}</p>}
+function ArtNote(){return <span className="art-note">Концепт-арт · не скриншот сервера</span>}
+function Logo(){return <a className="logo" href="#top" aria-label={`${PROJECT_NAME} — наверх`}><span className="logo-mark">Λ</span><span>{PROJECT_NAME}<small>MINECRAFT MMORPG</small></span></a>}
+function Header(){
+  const [open,setOpen]=useState(false),[scrolled,setScrolled]=useState(false); const button=useRef(null);
+  useEffect(()=>{const update=()=>setScrolled(window.scrollY>50); update();window.addEventListener('scroll',update,{passive:true});return()=>window.removeEventListener('scroll',update)},[]);
+  useEffect(()=>{const onKey=e=>{if(e.key==='Escape'&&open){setOpen(false);button.current?.focus()}};document.addEventListener('keydown',onKey);return()=>document.removeEventListener('keydown',onKey)},[open]);
+  return <header className={`header ${scrolled?'scrolled':''}`}><Logo/><button ref={button} className="menu-toggle" aria-expanded={open} aria-controls="main-nav" onClick={()=>setOpen(!open)}>{open?'Закрыть':'Меню'}<span>{open?'×':'☰'}</span></button><nav id="main-nav" className={open?'open':''} aria-label="Главная навигация">{[['world','Мир'],['paths','Занятия'],['death','Одна жизнь'],['development','Разработка']].map(([id,text])=><a key={id} href={`#${id}`} onClick={()=>setOpen(false)}>{text}</a>)}</nav><TelegramButton className="header-status"><i/> Telegram</TelegramButton></header>
+}
+const particles = Array.from({length:24},(_,i)=>({x:(i*37+11)%100, d:(i*13)%11, s:2+(i%3)*2, t:10+(i*7)%9, gold:i%5===0}));
+const stats = [[100,'этажей'],[10,'на старте'],[1,'жизнь'],[3,'пути']];
+const tickerWords = ['100 этажей','Одна жизнь','Гильдии','Мировые боссы','Тактический бой','Профессии','Аукцион','Первооткрыватели','Летописи павших'];
+function selectPath(i){window.dispatchEvent(new CustomEvent('select-path',{detail:i}))}
+function Particles(){return <div className="particles" aria-hidden="true">{particles.map((p,i)=><span key={i} className={p.gold?'gold':''} style={{'--x':p.x,'--d':p.d,'--s':p.s,'--t':p.t}}/>)}</div>}
+function Line({i, children}){return <span className="line"><motion.span initial={{y:'105%'}} animate={{y:0}} transition={{duration:.9,delay:.15+i*.12,ease:[.22,1,.36,1]}}>{children}</motion.span></span>}
+function Counter({to}){
+  const ref=useRef(null),inView=useInView(ref,{once:true}),reduce=useReducedMotion();
+  useEffect(()=>{if(!inView)return;if(reduce){ref.current.textContent=to;return}const c=animate(0,to,{duration:1.6,delay:.5,ease:[.22,1,.36,1],onUpdate:v=>{if(ref.current)ref.current.textContent=Math.round(v)}});return()=>c.stop()},[inView]);
+  return <b ref={ref}>0</b>;
+}
+function Ticker(){return <div className="ticker" aria-hidden="true"><div className="ticker-track">{[...tickerWords,...tickerWords].map((w,i)=><span key={i}>{w}<i>◆</i></span>)}</div></div>}
+function Hero(){
+  const ref=useRef(null);const {scrollYProgress}=useScroll({target:ref,offset:['start start','end start']});
+  const y=useTransform(scrollYProgress,[0,1],['0%','16%']),fade=useTransform(scrollYProgress,[0,.75],[1,0]);
+  return <section ref={ref} className="hero" id="top"><motion.div className="hero-parallax" style={{y}}><div className="hero-art"/></motion.div><div className="hero-shade"/><div className="hero-grain"/><Particles/><motion.div className="hero-layout" style={{opacity:fade}}><Reveal className="hero-copy"><p className="hero-kicker"><span/> Майнкрафт сервер по мотивам САО</p><h1><Line i={0}>100 этажей.</Line><Line i={1}><em>Одна жизнь.</em></Line></h1><p className="hero-description">Собирайте гильдию, готовьте снаряжение и идите к боссу этажа. Победа откроет дорогу наверх всему серверу.</p><div className="hero-actions"><TelegramButton/><a className="text-link" href="#world">Как устроен Туррис <span>↗</span></a></div><p className="status-note"><i/> Сервер в разработке. Дата открытия не объявлена.</p><div className="hero-stats">{stats.map(([n,label])=><div key={label}><Counter to={n}/><span>{label}</span></div>)}</div></Reveal><div className="hero-roles">{roles.map((r,i)=><motion.a key={r.id} href="#paths" onClick={()=>selectPath(i)} initial={{opacity:0,x:30}} animate={{opacity:1,x:0}} transition={{duration:.6,delay:.6+i*.1,ease:[.22,1,.36,1]}}><Icon name={r.icon}/><span><small>Путь 0{i+1}</small>{r.name}</span><b>↗</b></motion.a>)}</div></motion.div><div className="hero-footer"><a href="#world"><span className="scroll-line"/> Листай вниз</a><span>Концепт-арт</span></div><div className="hero-index" aria-hidden="true">01 <span>/ 100</span></div></section>}
+function World(){return <section className="section world" id="world"><Reveal className="section-heading"><div><Eyebrow number="01">Общее прохождение</Eyebrow><h2>Босса побеждает отряд.<br/><span>Этаж открывается всем.</span></h2></div><p>Как в САО, мир — это парящая крепость из 100 этажей с городами, полями и лабиринтами. Чтобы подняться выше, игрокам придётся вместе готовиться к рейдам.</p></Reveal><Reveal className="world-showcase"><div className="world-image"><img src={art('aincrad')} alt="Концепт парящей крепости Туррис с несколькими этажами" loading="lazy"/><div className="image-shade"/><span className="frame-label">МИР ТУРРИСА</span><div className="world-caption"><strong>Вверх, этаж за этажом.</strong><span>От первого города до вершины крепости.</span></div><ArtNote/></div><div className="floor-board"><div className="board-title"><Icon name="gate"/><span>План мира</span><small>100 этажей</small></div><div className="floor-stack" aria-hidden="true">{[100,75,50,25,10,1].map((n,i)=><div className={`floor-ring ring-${i}`} key={n} style={{'--ring':i}}><span>{String(n).padStart(2,'0')}</span></div>)}</div><div className="floor-legend"><span className="floor-dot"/><p><strong>10 этажей на старте</strong><small>План первого публичного сезона</small></p></div><p className="board-note">100 этажей — замысел мира. Дальнейшее продвижение зависит от побед игроков и подготовки нового контента.</p></div></Reveal><div className="journey">{steps.map(([icon,title,text],i)=><Reveal key={title} delay={i*.07} className="journey-card spot"><div className="card-top"><Icon name={icon}/><span>0{i+1}</span></div><h3>{title}</h3><p>{text}</p><span className="journey-arrow" aria-hidden="true">↗</span></Reveal>)}</div></section>}
+function Paths(){const [active,setActive]=useState(0);const refs=useRef([]);const reduced=useReducedMotion();const role=roles[active];
+  useEffect(()=>{const on=e=>setActive(e.detail);window.addEventListener('select-path',on);return()=>window.removeEventListener('select-path',on)},[]);
+  const onKey=(e,i)=>{let next;if(e.key==='ArrowRight')next=(i+1)%3;else if(e.key==='ArrowLeft')next=(i+2)%3;else if(e.key==='Home')next=0;else if(e.key==='End')next=2;else return;e.preventDefault();setActive(next);refs.current[next]?.focus()};
+  return <section className="section paths" id="paths"><Reveal className="section-heading"><div><Eyebrow number="02">Занятия игроков</Eyebrow><h2>Кто-то идёт в рейд.<br/><span>Кто-то куёт для него мечи.</span></h2></div><p>Сражайтесь, занимайтесь ремеслом или исследуйте мир. Это занятия игроков, а не фиксированные классы.</p></Reveal><Reveal><div className="path-tabs" role="tablist" aria-label="Занятия игроков">{roles.map((r,i)=><button ref={el=>refs.current[i]=el} key={r.id} id={`tab-${r.id}`} role="tab" aria-selected={active===i} aria-controls="path-panel" tabIndex={active===i?0:-1} onClick={()=>setActive(i)} onKeyDown={e=>onKey(e,i)}><span className="tab-number">0{i+1}</span><Icon name={r.icon}/><span>{r.name}</span><span className="tab-arrow">↗</span>{active===i&&<motion.span className="tab-indicator" layoutId="active-tab" transition={{duration:reduced?0:.3}}/>}</button>)}</div><div className="path-panel" role="tabpanel" id="path-panel" aria-labelledby={`tab-${role.id}`} tabIndex="0"><div className="path-images" aria-hidden="true">{roles.map((r,i)=><img key={r.id} src={art(r.image)} alt="" className={active===i?'active':''} loading="lazy"/>)}</div><div className="path-shade"/><div className="path-panel-top"><span>ЗАНЯТИЯ В ТУРРИСЕ</span><span>0{active+1} / 03</span></div><AnimatePresence mode="wait" initial={false}><motion.div key={role.id} className="path-copy" initial={{opacity:reduced?1:0,y:reduced?0:12}} animate={{opacity:1,y:0}} exit={{opacity:reduced?1:0,y:reduced?0:-8}} transition={{duration:reduced?0:.22}}><span className="eyebrow">{role.label}</span><h3>{role.title}</h3><p>{role.text}</p><div className="path-tags">{role.tags.map(t=><span key={t}>{t}</span>)}</div></motion.div></AnimatePresence><div className="path-emblem" aria-hidden="true"><Icon name={role.icon}/></div><ArtNote/></div></Reveal></section>
+}
+function Death(){return <section className="section death" id="death"><Reveal className="death-layout"><div className="death-copy"><Eyebrow number="03">Правила смерти</Eyebrow><h2>Потерять персонажа<br/><span>можно навсегда.</span></h2><p>Гибель в опасной зоне означает потерю персонажа, его вещей и прогресса. Это основа концепции сервера.</p><div className="loss-list"><span>Персонаж</span><span>Снаряжение</span><span>Прогресс</span></div><div className="memorial-art" aria-hidden="true"><div className="memorial-circle"/><div className="memorial-sword"><Icon name="swords"/></div><span>ОДНА ЖИЗНЬ</span></div></div><div className="death-cards">{[['shield','Сохраняется на аккаунте','Косметика, репутация и достижения.'],['book','Остаётся в истории мира','Память о персонаже — в мемориале и летописях. Наследие не возвращает потерянный прогресс.'],['gate','До тестирования уточним','Защиту новичков и исключения из перма-смерти. В городах планируется отключить PvP.']].map(([icon,title,text],i)=><Reveal key={title} delay={i*.08} className="death-card spot"><div className="death-icon"><Icon name={icon}/></div><div><h3>{title}</h3><p>{text}</p></div><span className="card-index">0{i+1}</span></Reveal>)}</div></Reveal></section>}
+function Economy(){return <section className="section economy" id="economy"><Reveal className="economy-frame"><img className="economy-image" src={art('town')} alt="Концепт вечерней площади первого города" loading="lazy"/><div className="economy-shade"/><div className="economy-content"><Eyebrow number="04">Экономика игроков</Eyebrow><h2>Снаряжение делают<br/>и продают игроки.</h2><p>Рейдеры приносят компоненты. Мастера превращают их в оружие и броню. Планируем профессии, заказы, лавки и аукцион.</p><div className="economy-chain"><span><Icon name="gem"/>Компоненты</span><b>→</b><span><Icon name="anvil"/>Ремесло</span><b>→</b><span><Icon name="swords"/>Снаряжение</span></div></div><div className="trade-note"><Icon name="shield"/><div><strong>Донат — только косметика</strong><p>Боевые характеристики и снаряжение продавать не планируем.</p></div></div><ArtNote/></Reveal></section>}
+function Join(){const steps=[['Подпишитесь на канал','Все новости проекта выходят в Telegram.'],['Следите за тестом','Условия набора опубликуем в канале.'],['Установите лаунчер','Ссылка появится здесь, когда он будет готов.']];return <section className="section join" id="join"><div className="portal" aria-hidden="true"><i/><i/><i/><i/></div><Reveal className="join-box"><Eyebrow number="06">Как попасть в Туррис</Eyebrow><h2>Следите за Туррисом<br/><span>с первого дня.</span></h2><p>Все новости проекта выходят в Telegram-канале.</p><div className="join-steps">{steps.map(([title,text],i)=><Reveal key={title} delay={i*.1} className="join-step spot"><span>0{i+1}</span><h3>{title}</h3><p>{text}</p></Reveal>)}</div>{TELEGRAM_URL?<TelegramButton/>:<span className="button primary is-pending" aria-disabled="true">Канал скоро появится</span>}</Reveal></section>}
+function FloatingCta(){
+  const [show,setShow]=useState(false);
+  useEffect(()=>{const update=()=>{const join=document.getElementById('join');setShow(window.scrollY>window.innerHeight*.9&&!(join&&join.getBoundingClientRect().top<window.innerHeight))};update();window.addEventListener('scroll',update,{passive:true});return()=>window.removeEventListener('scroll',update)},[]);
+  return <AnimatePresence>{show&&<motion.div className="floating-cta" initial={{opacity:0,y:30}} animate={{opacity:1,y:0}} exit={{opacity:0,y:30}} transition={{duration:.3}}><TelegramButton/></motion.div>}</AnimatePresence>;
+}
+function useSpotlight(){useEffect(()=>{const move=e=>{const el=e.target.closest?.('.spot');if(!el)return;const r=el.getBoundingClientRect();el.style.setProperty('--mx',`${e.clientX-r.left}px`);el.style.setProperty('--my',`${e.clientY-r.top}px`)};document.addEventListener('pointermove',move,{passive:true});return()=>document.removeEventListener('pointermove',move)},[])}
+function FAQ(){const [opened,setOpened]=useState(null);return <div className="faq"><div><Eyebrow number="?">Вопросы</Eyebrow><h3>Перед запуском</h3><p>Что уже известно<br/>о будущем сервере.</p></div><div className="faq-list">{questions.map(([q,a],i)=><div className={`faq-item ${opened===i?'expanded':''}`} key={q}><h4><button aria-expanded={opened===i} aria-controls={`answer-${i}`} id={`question-${i}`} onClick={()=>setOpened(opened===i?null:i)}><span>{q}</span><b aria-hidden="true">+</b></button></h4><div className="faq-answer" id={`answer-${i}`} role="region" aria-labelledby={`question-${i}`} inert={opened!==i}><div><p>{a}</p></div></div></div>)}</div></div>}
+function Development(){const roadmap=[['Концепция и сайт','Описание мира, правил и механик, концепт-арты и эта страница.','Готово'],['Прототип первого этажа','Город, поля, лабиринт, босс и базовый бой.','В плане'],['Профессии и торговля','Крафт компонентов, аукцион и заказы.','В плане'],['Закрытая бета','Проверка боя, баланса и причин смертей.','В плане'],['Публичный сезон','План запуска с десятью этажами.','В плане']];return <section className="section development" id="development"><Reveal className="section-heading"><div><Eyebrow number="05">Разработка</Eyebrow><h2>Начинаем<br/><span>с первого этажа.</span></h2></div><div><span className="development-badge"><i/> Сервер в разработке</span><p>В прототип закладываем город, поля, лабиринт с боссом, базовый бой и правила смерти. Подробности публикуем в Telegram-канале по мере появления новостей.</p></div></Reveal><div className="roadmap">{roadmap.map(([title,text,status],i)=><Reveal key={title} delay={i*.08} className="roadmap-card spot"><span className="roadmap-index">0{i+1}</span><div className="roadmap-node"/><h3>{title}</h3><p>{text}</p><span className={`roadmap-tag ${status==='Готово'?'done':''}`}>{status}</span></Reveal>)}</div><Reveal><FAQ/></Reveal></section>}
+function Page(){useSpotlight();const reduced=useReducedMotion();const {scrollYProgress}=useScroll();const progress=useSpring(scrollYProgress,{stiffness:100,damping:30});return <><a className="skip" href="#world">К содержанию</a><motion.div className="reading-progress" style={{scaleX:reduced?scrollYProgress:progress}}/><Header/><main><Hero/><Ticker/><World/><Paths/><Death/><Economy/><Development/><Join/></main><FloatingCta/><footer><Logo/><p>Фанатский Майнкрафт сервер по мотивам САО (Sword Art Online).<br/>Не является официальным продуктом Minecraft или Sword Art Online.</p><a className="back-top" href="#top">Наверх <span>↑</span></a></footer></>}
+export default function App(){return <MotionConfig reducedMotion="user"><Page/></MotionConfig>}
+
