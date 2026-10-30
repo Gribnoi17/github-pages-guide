@@ -13,4 +13,8 @@ const siteMeta = {
     .replaceAll('%SITE_URL%', SITE.url),
 };
 
-export default defineConfig({ plugins: [siteMeta] });
+// На GitHub Pages сайт живёт в подпапке (/github-pages-guide/), поэтому при сборке base берётся из SITE.url.
+export default defineConfig(({ command, isPreview }) => ({
+  base: command === 'build' || isPreview ? new URL(SITE.url).pathname.replace(/\/?$/, '/') : '/',
+  plugins: [siteMeta],
+}));

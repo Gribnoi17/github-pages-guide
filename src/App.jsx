@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { animate, AnimatePresence, motion, MotionConfig, useInView, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react';
 import { SITE } from './site.js';
 
-const art = name => `/art/${name}.webp`;
+const art = name => `${import.meta.env.BASE_URL}art/${name}.webp`;
 const PROJECT_NAME = SITE.name;
 const TELEGRAM_URL = SITE.telegram;
 function TelegramButton({className='button primary', children='Следить в Telegram'}) {
